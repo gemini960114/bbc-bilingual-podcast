@@ -9,7 +9,30 @@ description: 每日雙語新聞 Podcast 產生器。抓取 BBC 國際新聞或�
 
 ---
 
-## 快速使用情境
+## 零、 環境預檢與自動同步（Pre-flight Check，務必優先執行）
+
+在任何全新機器或首次執行本 Skill 前，**AI Agent 應主動確認環境是否齊備**：
+
+### 1. 確認並同步 Python 依賴套件（確保環境 100% 一致）
+本專案已包含 `uv.lock` 與 `pyproject.toml`，執行以下指令可一鍵自動安裝精準版本：
+```powershell
+uv sync
+```
+> [!NOTE]
+> `uv run sound` 本身具備自動環境感知功能，若虛擬環境尚未建立，`uv` 會自動依據 lockfile 建立並安裝所需套件。
+
+### 2. 確認系統音訊工具 `ffmpeg`
+```powershell
+ffmpeg -version
+```
+* **若未安裝**：
+  * **Windows**：執行 `winget install Gyan.FFmpeg`
+  * **macOS**：執行 `brew install ffmpeg`
+  * **Ubuntu/Debian**：執行 `sudo apt update && sudo apt install -y ffmpeg`
+
+---
+
+## 壹、 快速使用情境
 
 使用者若提出以下需求，直接執行對應指令：
 
@@ -41,7 +64,7 @@ uv run sound -s cna -n 6 --order zh-en --zh-voice xiaochen --en-voice christophe
 
 ---
 
-## 參數說明
+## 貳、 參數說明
 
 | 參數 | 縮寫 | 預設值 | 說明 |
 | :--- | :--- | :--- | :--- |
@@ -57,7 +80,7 @@ uv run sound -s cna -n 6 --order zh-en --zh-voice xiaochen --en-voice christophe
 
 ---
 
-## 支援語音清單（Voice Aliases）
+## 參、 支援語音清單（Voice Aliases）
 
 ### 台灣繁體中文 (zh-TW)
 - `yunzhe`：`zh-TW-YunJheNeural`（男聲，親切自然沉穩）
@@ -74,7 +97,7 @@ uv run sound -s cna -n 6 --order zh-en --zh-voice xiaochen --en-voice christophe
 
 ---
 
-## 輸出結果
+## 肆、 輸出結果
 
 執行後自動於 `output/` 目錄產生兩個檔案：
 1. **`.mp3`**：高品質 128kbps 立體聲廣播音訊，已接合背景段落停頓與 ID3 標籤。
