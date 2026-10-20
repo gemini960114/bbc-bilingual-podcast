@@ -5,41 +5,51 @@ description: 每日雙語新聞 Podcast 產生器。抓取 BBC 國際新聞或�
 
 # 每日雙語新聞 Podcast 產生器 Skill (bilingual-podcast)
 
-本 Skill 提供全自動化新聞 Podcast 產製工作流，整合新聞 RSS 擷取、智慧雙語翻譯（含台灣用語在地化轉換）、微軟 Edge Neural TTS 高音質語音合成，以及 ffmpeg 音訊接合。
+本 Skill 為**自包含獨立（Portable & Self-Contained）下載包**，可放置於任何目錄或全域 Skill 目錄。內部 Python 腳本內嵌 PEP 723 依賴宣告，執行時由 `uv` 自動在專屬隔離沙盒中運行，**絕不污染全域環境，也不會與其他專案套件衝突**。
 
 ---
 
-## 零、 環境預檢與自動同步（Pre-flight Check，務必優先執行）
+## 零、 環境需求確認（唯一外部依賴）
 
-在任何全新機器或首次執行本 Skill 前，**AI Agent 應主動確認環境是否齊備**：
-
-### 1. 確認並同步 Python 依賴套件（確保環境 100% 一致）
-本專案已包含 `uv.lock` 與 `pyproject.toml`，執行以下指令可一鍵自動安裝精準版本：
-```powershell
-uv sync
-```
-> [!NOTE]
-> `uv run sound` 本身具備自動環境感知功能，若虛擬環境尚未建立，`uv` 會自動依據 lockfile 建立並安裝所需套件。
-
-### 2. 確認系統音訊工具 `ffmpeg`
+執行本 Skill 前，請確保系統已安裝音訊底層工具 `ffmpeg`：
 ```powershell
 ffmpeg -version
 ```
 * **若未安裝**：
   * **Windows**：執行 `winget install Gyan.FFmpeg`
   * **macOS**：執行 `brew install ffmpeg`
-  * **Ubuntu/Debian**：執行 `sudo apt update && sudo apt install -y ffmpeg`
+  * **Linux (Ubuntu/Debian)**：執行 `sudo apt update && sudo apt install -y ffmpeg`
+
+*(註：Python 套件不需要手動安裝，`uv run` 會依腳本內嵌宣告自動沙盒化即時載入)*
 
 ---
 
-## 壹、 快速使用情境
+## 壹、 執行方式
 
-使用者若提出以下需求，直接執行對應指令：
+本 Skill 支援以下兩種執行方式：
+
+### 方式 A：在任何專案目錄直接調用本 Skill 的獨立腳本（推薦）
+```powershell
+uv run .agents/skills/bilingual-podcast/scripts/podcast.py [參數]
+# 若此 Skill 安裝在全域目錄（~/.gemini/config/skills/bilingual-podcast/）：
+# uv run "$HOME/.gemini/config/skills/bilingual-podcast/scripts/podcast.py" [參數]
+```
+
+### 方式 B：在本專案環境中執行 CLI
+```powershell
+uv run sound [參數]
+```
+
+---
+
+## 貳、 快速使用情境
+
+使用者提出需求時，直接依情境執行對應指令：
 
 ### 情境 1：台灣新聞學英文（先中文再英文）
 > 範例：「幫我做今天台灣中央社新聞，中文先、英文後」
 ```powershell
-uv run sound -s cna -n 5 --order zh-en --zh-voice yunzhe --en-voice aria
+uv run .agents/skills/bilingual-podcast/scripts/podcast.py -s cna -n 5 --order zh-en --zh-voice yunzhe --en-voice aria
 ```
 * **中文主播**：台灣男聲（雲哲 `zh-TW-YunJheNeural`）
 * **英文主播**：美式女聲（Aria `en-US-AriaNeural`，新聞專用音）
@@ -49,7 +59,7 @@ uv run sound -s cna -n 5 --order zh-en --zh-voice yunzhe --en-voice aria
 ### 情境 2：經典 BBC 聽力磨練（先英文再中文，預設）
 > 範例：「幫我產今天的 BBC 雙語新聞」
 ```powershell
-uv run sound -s bbc -n 8 --order en-zh --en-voice sonia --zh-voice yunzhe
+uv run .agents/skills/bilingual-podcast/scripts/podcast.py -s bbc -n 8 --order en-zh --en-voice sonia --zh-voice yunzhe
 ```
 * **英文主播**：英式女聲（Sonia `en-GB-SoniaNeural`，BBC 播報腔）
 * **中文主播**：台灣男聲（雲哲 `zh-TW-YunJheNeural`）
@@ -57,14 +67,14 @@ uv run sound -s bbc -n 8 --order en-zh --en-voice sonia --zh-voice yunzhe
 ---
 
 ### 情境 3：自選男女主播與風格搭檔
-> 範例：「用曉臻（台灣女聲）和 Christopher（美式男聲）播報」
+> 範例：「用曉臻（台灣女聲）和 Christopher（美式男聲）播報 6 則中央社要聞」
 ```powershell
-uv run sound -s cna -n 6 --order zh-en --zh-voice xiaochen --en-voice christopher
+uv run .agents/skills/bilingual-podcast/scripts/podcast.py -s cna -n 6 --order zh-en --zh-voice xiaochen --en-voice christopher
 ```
 
 ---
 
-## 貳、 參數說明
+## 參、 參數說明
 
 | 參數 | 縮寫 | 預設值 | 說明 |
 | :--- | :--- | :--- | :--- |
@@ -80,7 +90,7 @@ uv run sound -s cna -n 6 --order zh-en --zh-voice xiaochen --en-voice christophe
 
 ---
 
-## 參、 支援語音清單（Voice Aliases）
+## 肆、 支援語音清單（Voice Aliases）
 
 ### 台灣繁體中文 (zh-TW)
 - `yunzhe`：`zh-TW-YunJheNeural`（男聲，親切自然沉穩）
@@ -97,8 +107,8 @@ uv run sound -s cna -n 6 --order zh-en --zh-voice xiaochen --en-voice christophe
 
 ---
 
-## 肆、 輸出結果
+## 伍、 輸出結果
 
-執行後自動於 `output/` 目錄產生兩個檔案：
+執行後自動於工作目錄之 `output/` 產出：
 1. **`.mp3`**：高品質 128kbps 立體聲廣播音訊，已接合背景段落停頓與 ID3 標籤。
 2. **`.txt`**：逐字講稿，清楚標註每一段的語言、主播聲音 ID 與對照原文／譯文。

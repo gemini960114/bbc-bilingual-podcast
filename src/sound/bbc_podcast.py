@@ -288,7 +288,7 @@ def main() -> None:
     parser.add_argument("--zh-voice", default="zh-TW-YunJheNeural", help="中文聲音，可填別名（yunzhe, xiaochen, xiaoyu, yunyang）或完整 Voice ID")
     parser.add_argument("-n", "--limit", type=int, default=6, help="新聞則數（預設 6）")
     parser.add_argument("--full", action="store_true", help="針對 BBC 另外抓取文章前段內文")
-    parser.add_argument("--rate", default="+0%", help="語速，例如 +10% 或 -5%")
+    parser.add_argument("--rate", default="+0%", help="語速，例如 +10%% 或 -5%%")
     parser.add_argument("--pause", type=int, default=600, help="段落間停頓毫秒數（預設 600）")
     parser.add_argument("--retries", type=int, default=12, help="語音合成重試次數（預設 12）")
     parser.add_argument("-o", "--output", type=Path, help="輸出 mp3 路徑（預設 output/{source}_{YYYYMMDD}.mp3）")
