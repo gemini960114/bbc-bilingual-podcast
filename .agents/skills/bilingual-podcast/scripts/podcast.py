@@ -14,10 +14,16 @@
 
 本腳本採用 PEP 723 (Inline Script Metadata)，執行時由 uv 自動在隔離沙盒中
 準備所需套件，絕不污染使用者的系統 Python 或其他專案環境。
+
+兩種翻譯方式：
+- AI 翻譯（推薦）：--fetch-only 抓新聞並輸出 JSON 草稿 → AI 助理填入 translation
+  → --from-json 讀回草稿合成 MP3。
+- 自動翻譯（後備）：不加上述參數，一次跑完，翻譯使用 Google / MyMemory 免費服務。
 """
 
 import argparse
 import asyncio
+import json
 import re
 import sys
 import tempfile
@@ -52,7 +58,7 @@ PRESET_SOURCES = {
     },
     "cna": {
         "name": "中央社 CNA",
-        "url": "https://feeds.feedburner.com/cnaFirstNews",
+        "url": "https://feeds.feedburner.com/rsscna/politics",  # cnaFirstNews 自 2025-05 起停更
         "lang": "zh",
         "default_order": "zh-en",
     },
@@ -303,10 +309,23 @@ def main() -> None:
     parser.add_argument("--pause", type=int, default=600, help="段落間停頓毫秒數（預設 600）")
     parser.add_argument("--retries", type=int, default=12, help="語音合成重試次數（預設 12）")
     parser.add_argument("-o", "--output", type=Path, help="輸出 mp3 路徑（預設 output/{source}_{YYYYMMDD}.mp3）")
+    parser.add_argument("--fetch-only", action="store_true", help="只抓新聞，輸出待翻譯的 JSON 草稿（給 AI 助理翻譯）")
+    parser.add_argument("--from-json", type=Path, help="讀取已填好 translation 的 JSON 草稿，直接合成 MP3")
     args = parser.parse_args()
 
     en_voice = resolve_voice(args.en_voice)
     zh_voice = resolve_voice(args.zh_voice)
+
+    if args.from_json:
+        draft = json.loads(args.from_json.read_text(encoding="utf-8"))
+        items = draft["items"]
+        missing = [n for n, it in enumerate(items, 1) if not it.get("translation", "").strip()]
+        if missing:
+            sys.exit(f"第 {missing} 則還沒有 translation，請先翻譯後再執行。")
+        output = args.output or args.from_json.with_suffix(".mp3")
+        render(draft["source_name"], args.order or draft["order"], items,
+               [it["translation"] for it in items], en_voice, zh_voice, output, args)
+        return
 
     source_key = args.source.lower()
     source_name, source_lang, items = fetch_headlines(args.source, args.limit, args.full)
@@ -330,6 +349,20 @@ def main() -> None:
     for n, item in enumerate(items, 1):
         print(f"  {n}. {item['title']}")
 
+    if args.fetch_only:
+        target = "台灣繁體中文（台灣用語）" if order == "en-zh" else "自然的英文新聞稿"
+        draft = {
+            "source_name": source_name,
+            "order": order,
+            "translate_to": target,
+            "items": [{**it, "translation": ""} for it in items],
+        }
+        json_path = output.with_suffix(".json")
+        json_path.write_text(json.dumps(draft, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"📝 已輸出待翻譯草稿：{json_path}")
+        print(f"   請把每則 text 翻成{target}，填入 translation，再執行：--from-json {json_path}")
+        return
+
     if order == "en-zh":
         print("🌐 英文原文 ➔ 翻譯為台灣繁體中文…")
         translated_texts = [to_taiwan_terms(t) for t in translate_texts([it["text"] for it in items], source_lang="en", target_lang="zh")]
@@ -337,6 +370,21 @@ def main() -> None:
         print("🌐 中文原文 ➔ 翻譯為英文講稿…")
         translated_texts = translate_texts([it["text"] for it in items], source_lang="zh", target_lang="en")
 
+    render(source_name, order, items, translated_texts, en_voice, zh_voice, output, args)
+
+
+def render(
+    source_name: str,
+    order: str,
+    items: list[dict],
+    translated_texts: list[str],
+    en_voice: str,
+    zh_voice: str,
+    output: Path,
+    args: argparse.Namespace,
+) -> None:
+    """依翻譯結果組成雙語腳本，輸出講稿 TXT 並合成 MP3。"""
+    output.parent.mkdir(parents=True, exist_ok=True)
     segments = build_script(
         source_name=source_name,
         order=order,

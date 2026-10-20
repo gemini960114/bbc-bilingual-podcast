@@ -42,6 +42,31 @@ uv run sound [參數]
 
 ---
 
+## 翻譯方式：預設由 AI 助理翻譯
+
+執行本 Skill 的 AI 助理**預設自己負責翻譯**（品質最好、會用台灣用語、不需 API Key），分三步：
+
+1. **抓新聞，輸出草稿**：在指令加上 `--fetch-only`（其他參數照下方情境填）
+   ```powershell
+   uv run .agents/skills/bilingual-podcast/scripts/podcast.py -s cna -n 2 --order zh-en --fetch-only
+   ```
+   會產生 `output/{source}_{YYYYMMDD}.json`。
+2. **AI 翻譯**：讀取 JSON，把每則 `text` 依 `translate_to` 欄位翻好，填入 `translation`。
+   * 翻成中文：台灣繁體中文與台灣用語（例如川普、世界盃、影片）。
+   * 翻成英文：自然的新聞英文；新台幣用 New Taiwan dollar，不要寫 yuan。
+   * 數字照原文，不要拆開小數點。
+3. **合成 MP3**：
+   ```powershell
+   uv run .agents/skills/bilingual-podcast/scripts/podcast.py --from-json output/cna_20261020.json
+   ```
+   聲音參數（`--zh-voice`、`--en-voice`）加在這一步。
+
+**後備方式**：不加 `--fetch-only` 時一次跑完，翻譯改用 Google／MyMemory 免費服務。被限流時品質較差，只在無法由 AI 翻譯時使用（例如排程自動執行）。
+
+> 下方情境的指令是後備方式的寫法；由 AI 助理執行時，請把同樣的參數套進上面三個步驟。
+
+---
+
 ## 貳、 快速使用情境
 
 使用者提出需求時，直接依情境執行對應指令：
@@ -87,6 +112,8 @@ uv run .agents/skills/bilingual-podcast/scripts/podcast.py -s cna -n 6 --order z
 | `--rate` | | `+0%` | 播報語速調整，例如 `+10%`、`-5%` |
 | `--pause` | | `600` | 段落間隔靜音長度（毫秒） |
 | `--output` | `-o` | 自動 | 輸出路徑（預設 `output/{source}_{YYYYMMDD}.mp3`） |
+| `--fetch-only` | | 關閉 | 只抓新聞，輸出待翻譯的 JSON 草稿（AI 翻譯流程第 1 步） |
+| `--from-json` | | | 讀取已填好 `translation` 的 JSON，合成 MP3（AI 翻譯流程第 3 步） |
 
 ---
 
